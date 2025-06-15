@@ -62,7 +62,14 @@ class Model:
             Model: Record or None if not found
         """
         with DatabaseConnection.session_scope() as session:
-            return session.query(cls).get(id)
+            instance = session.query(cls).get(id)
+            if instance:
+                # Create a copy of the instance to return after the session is closed
+                instance_copy = cls()
+                for column in instance.__table__.columns:
+                    setattr(instance_copy, column.name, getattr(instance, column.name))
+                return instance_copy
+            return None
     
     @classmethod
     def list_all(cls, limit=None):
