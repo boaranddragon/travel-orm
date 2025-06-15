@@ -92,11 +92,21 @@ class Model:
             Model: Updated record
         """
         with DatabaseConnection.session_scope() as session:
+            # Get a fresh instance from the database
+            instance = session.query(self.__class__).get(self.id)
+            if not instance:
+                raise ValueError(f"Instance with id {self.id} not found")
+                
+            # Update attributes
+            for key, value in kwargs.items():
+                setattr(instance, key, value)
+                
+            # Also update the current instance
             for key, value in kwargs.items():
                 setattr(self, key, value)
-            session.add(self)
+                
             session.flush()
-            session.refresh(self)
+            session.refresh(instance)
             return self
     
     def delete(self):
