@@ -314,21 +314,24 @@ class LiveDatabaseTest:
         try:
             # Delete in reverse order of creation to respect foreign key constraints
             for document in self.created_objects['documents']:
-                document.delete()
+                if document and hasattr(document, 'id'):
+                    document.delete()
             
             for item in self.created_objects['items']:
-                item.delete()
+                if item and hasattr(item, 'id'):
+                    item.delete()
             
             for day in self.created_objects['days']:
-                day.delete()
+                if day and hasattr(day, 'id'):
+                    day.delete()
             
-            if self.created_objects['itinerary']:
+            if self.created_objects['itinerary'] and hasattr(self.created_objects['itinerary'], 'id'):
                 self.created_objects['itinerary'].delete()
             
-            if self.created_objects['data_source']:
+            if self.created_objects['data_source'] and hasattr(self.created_objects['data_source'], 'id'):
                 self.created_objects['data_source'].delete()
             
-            if self.created_objects['advisor']:
+            if self.created_objects['advisor'] and hasattr(self.created_objects['advisor'], 'id'):
                 self.created_objects['advisor'].delete()
             
             logger.info("Cleanup completed successfully")

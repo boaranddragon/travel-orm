@@ -110,8 +110,12 @@ class Model:
             bool: True if deleted
         """
         with DatabaseConnection.session_scope() as session:
-            session.delete(self)
-            return True
+            # Get a fresh instance from the database
+            instance = session.query(self.__class__).get(self.id)
+            if instance:
+                session.delete(instance)
+                return True
+            return False
     
     @classmethod
     def execute_query(cls, query_func):
