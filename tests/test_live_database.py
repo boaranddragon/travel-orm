@@ -133,7 +133,7 @@ class LiveDatabaseTest:
         logger.info("Testing itinerary creation...")
         start_date = date.today() + timedelta(days=30)  # 30 days from now
         itinerary = Itinerary.create(
-            travel_advisor_id=self.created_objects['advisor'].id,
+            owner_id=self.created_objects['advisor'].id,
             start_date=start_date,
             duration=7,
             destination=f"Test Destination {self.test_id}"
