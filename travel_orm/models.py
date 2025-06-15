@@ -41,7 +41,14 @@ class Model:
             session.add(instance)
             session.flush()  # Flush to get the ID
             session.refresh(instance)
-            return instance
+            # Create a copy of the instance to return after the session is closed
+            instance_copy = cls(**{
+                k: getattr(instance, k) 
+                for k in kwargs.keys() if hasattr(instance, k)
+            })
+            # Copy the ID
+            setattr(instance_copy, 'id', getattr(instance, 'id'))
+            return instance_copy
     
     @classmethod
     def get_by_id(cls, id):
