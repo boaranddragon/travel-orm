@@ -20,27 +20,12 @@ item_type_enum = ENUM('info', 'food', 'hotel', 'activity', 'transport',
 data_source_type_enum = ENUM('email', 'file', 'api', 'manual', 
                              name='data_source_type', create_type=False)
 
-# Metaclass for model classes
-class ModelMeta(type):
+# Base model class
+class Model:
     """
-    Metaclass that adds CRUD operations to model classes
+    Base model class with CRUD operations
     """
-    def __new__(mcs, name, bases, attrs):
-        # Create the new class
-        cls = super().__new__(mcs, name, bases, attrs)
-        
-        # Add class methods for CRUD operations
-        if name != 'Model':  # Don't add methods to the base Model class
-            cls.create = classmethod(mcs.create)
-            cls.get_by_id = classmethod(mcs.get_by_id)
-            cls.list_all = classmethod(mcs.list_all)
-            cls.update = mcs.update
-            cls.delete = mcs.delete
-            cls.execute_query = classmethod(mcs.execute_query)
-        
-        return cls
-    
-    @staticmethod
+    @classmethod
     def create(cls, **kwargs):
         """
         Create a new record
@@ -58,7 +43,7 @@ class ModelMeta(type):
             session.refresh(instance)
             return instance
     
-    @staticmethod
+    @classmethod
     def get_by_id(cls, id):
         """
         Get a record by ID
@@ -72,7 +57,7 @@ class ModelMeta(type):
         with DatabaseConnection.session_scope() as session:
             return session.query(cls).get(id)
     
-    @staticmethod
+    @classmethod
     def list_all(cls, limit=None):
         """
         List all records
@@ -89,7 +74,6 @@ class ModelMeta(type):
                 query = query.limit(limit)
             return query.all()
     
-    @staticmethod
     def update(self, **kwargs):
         """
         Update record attributes
@@ -108,7 +92,6 @@ class ModelMeta(type):
             session.refresh(self)
             return self
     
-    @staticmethod
     def delete(self):
         """
         Delete the record
@@ -123,7 +106,7 @@ class ModelMeta(type):
             session.delete(self)
             return True
     
-    @staticmethod
+    @classmethod
     def execute_query(cls, query_func):
         """
         Execute a custom query function
@@ -136,14 +119,6 @@ class ModelMeta(type):
         """
         with DatabaseConnection.session_scope() as session:
             return query_func(session)
-
-
-# Base model class with metaclass
-class Model(metaclass=ModelMeta):
-    """
-    Base model class with CRUD operations
-    """
-    pass
 
 
 class TravelAdvisor(Base, Model):
