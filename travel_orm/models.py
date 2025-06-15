@@ -1,0 +1,354 @@
+"""
+SQLAlchemy models for the Travel Itinerary database
+"""
+
+import uuid
+from datetime import datetime
+from sqlalchemy import Column, String, DateTime, Date, Integer, ForeignKey, Text, ARRAY, text
+from sqlalchemy.dialects.postgresql import UUID, ENUM
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
+
+from .connection import DatabaseConnection
+
+# Create the base model class
+Base = declarative_base()
+
+# Define enum types
+item_type_enum = ENUM('info', 'food', 'hotel', 'activity', 'transport', 
+                      name='item_type', create_type=False)
+data_source_type_enum = ENUM('email', 'file', 'api', 'manual', 
+                             name='data_source_type', create_type=False)
+
+# Metaclass for model classes
+class ModelMeta(type):
+    """
+    Metaclass that adds CRUD operations to model classes
+    """
+    def __new__(mcs, name, bases, attrs):
+        # Create the new class
+        cls = super().__new__(mcs, name, bases, attrs)
+        
+        # Add class methods for CRUD operations
+        if name != 'Model':  # Don't add methods to the base Model class
+            cls.create = classmethod(mcs.create)
+            cls.get_by_id = classmethod(mcs.get_by_id)
+            cls.list_all = classmethod(mcs.list_all)
+            cls.update = mcs.update
+            cls.delete = mcs.delete
+            cls.execute_query = classmethod(mcs.execute_query)
+        
+        return cls
+    
+    @staticmethod
+    def create(cls, **kwargs):
+        """
+        Create a new record
+        
+        Args:
+            **kwargs: Model attributes
+            
+        Returns:
+            Model: Created record
+        """
+        with DatabaseConnection.session_scope() as session:
+            instance = cls(**kwargs)
+            session.add(instance)
+            session.flush()  # Flush to get the ID
+            session.refresh(instance)
+            return instance
+    
+    @staticmethod
+    def get_by_id(cls, id):
+        """
+        Get a record by ID
+        
+        Args:
+            id: Primary key value
+            
+        Returns:
+            Model: Record or None if not found
+        """
+        with DatabaseConnection.session_scope() as session:
+            return session.query(cls).get(id)
+    
+    @staticmethod
+    def list_all(cls, limit=None):
+        """
+        List all records
+        
+        Args:
+            limit (int, optional): Maximum number of records to return
+            
+        Returns:
+            list: List of records
+        """
+        with DatabaseConnection.session_scope() as session:
+            query = session.query(cls)
+            if limit is not None:
+                query = query.limit(limit)
+            return query.all()
+    
+    @staticmethod
+    def update(self, **kwargs):
+        """
+        Update record attributes
+        
+        Args:
+            **kwargs: Attributes to update
+            
+        Returns:
+            Model: Updated record
+        """
+        with DatabaseConnection.session_scope() as session:
+            for key, value in kwargs.items():
+                setattr(self, key, value)
+            session.add(self)
+            session.flush()
+            session.refresh(self)
+            return self
+    
+    @staticmethod
+    def delete(self):
+        """
+        Delete the record
+        
+        Args:
+            self: Model instance
+            
+        Returns:
+            bool: True if deleted
+        """
+        with DatabaseConnection.session_scope() as session:
+            session.delete(self)
+            return True
+    
+    @staticmethod
+    def execute_query(cls, query_func):
+        """
+        Execute a custom query function
+        
+        Args:
+            query_func: Function that takes a session and returns a query result
+            
+        Returns:
+            Any: Query result
+        """
+        with DatabaseConnection.session_scope() as session:
+            return query_func(session)
+
+
+# Base model class with metaclass
+class Model(metaclass=ModelMeta):
+    """
+    Base model class with CRUD operations
+    """
+    pass
+
+
+class TravelAdvisor(Base, Model):
+    """SQLAlchemy model for travel_advisors table"""
+    __tablename__ = 'travel_advisors'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String(255), nullable=False)
+    phone_number = Column(String(50))
+    website = Column(String(255))
+    profile_image = Column(String(255))
+    company_name = Column(String(255))
+    company_logo = Column(String(255))
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    itineraries = relationship("Itinerary", back_populates="travel_advisor")
+    
+    def __repr__(self):
+        return f"<TravelAdvisor(id='{self.id}', name='{self.name}', company='{self.company_name}')>"
+    
+    def to_dict(self):
+        """Convert model to dictionary"""
+        return {
+            'id': str(self.id),
+            'name': self.name,
+            'phone_number': self.phone_number,
+            'website': self.website,
+            'profile_image': self.profile_image,
+            'company_name': self.company_name,
+            'company_logo': self.company_logo,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+
+
+class Itinerary(Base, Model):
+    """SQLAlchemy model for itineraries table"""
+    __tablename__ = 'itineraries'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    travel_advisor_id = Column(UUID(as_uuid=True), ForeignKey('travel_advisors.id'), nullable=False)
+    start_date = Column(Date, nullable=False)
+    duration = Column(Integer, nullable=False)
+    destination = Column(String(255), nullable=False)
+    cover_image = Column(String(255))
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    travel_advisor = relationship("TravelAdvisor", back_populates="itineraries")
+    days = relationship("Day", back_populates="itinerary", cascade="all, delete-orphan")
+    information_documents = relationship("InformationDocument", back_populates="itinerary", cascade="all, delete-orphan")
+    
+    def __repr__(self):
+        return f"<Itinerary(id='{self.id}', destination='{self.destination}', start_date='{self.start_date}')>"
+    
+    def to_dict(self):
+        """Convert model to dictionary"""
+        return {
+            'id': str(self.id),
+            'travel_advisor_id': str(self.travel_advisor_id),
+            'start_date': self.start_date.isoformat() if self.start_date else None,
+            'duration': self.duration,
+            'destination': self.destination,
+            'cover_image': self.cover_image,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+
+
+class DataSource(Base, Model):
+    """SQLAlchemy model for data_source table"""
+    __tablename__ = 'data_source'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    received_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    processed_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    type = Column(data_source_type_enum, nullable=False)
+    url = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    information_documents = relationship("InformationDocument", back_populates="data_source")
+    itinerary_items = relationship("ItineraryItem", back_populates="data_source")
+    
+    def __repr__(self):
+        return f"<DataSource(id='{self.id}', type='{self.type}')>"
+    
+    def to_dict(self):
+        """Convert model to dictionary"""
+        return {
+            'id': str(self.id),
+            'received_at': self.received_at.isoformat() if self.received_at else None,
+            'processed_at': self.processed_at.isoformat() if self.processed_at else None,
+            'type': self.type,
+            'url': self.url,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+
+
+class InformationDocument(Base, Model):
+    """SQLAlchemy model for information_documents table"""
+    __tablename__ = 'information_documents'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    itinerary_id = Column(UUID(as_uuid=True), ForeignKey('itineraries.id'), nullable=False)
+    data_source_id = Column(UUID(as_uuid=True), ForeignKey('data_source.id'))
+    index = Column(Integer, nullable=False)
+    title = Column(String(255), nullable=False)
+    text = Column(Text)
+    formatted_text = Column(Text)
+    photos = Column(ARRAY(String))
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    itinerary = relationship("Itinerary", back_populates="information_documents")
+    data_source = relationship("DataSource", back_populates="information_documents")
+    
+    def __repr__(self):
+        return f"<InformationDocument(id='{self.id}', title='{self.title}')>"
+    
+    def to_dict(self):
+        """Convert model to dictionary"""
+        return {
+            'id': str(self.id),
+            'itinerary_id': str(self.itinerary_id),
+            'data_source_id': str(self.data_source_id) if self.data_source_id else None,
+            'index': self.index,
+            'title': self.title,
+            'text': self.text,
+            'formatted_text': self.formatted_text,
+            'photos': self.photos,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+
+
+class Day(Base, Model):
+    """SQLAlchemy model for days table"""
+    __tablename__ = 'days'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    itinerary_id = Column(UUID(as_uuid=True), ForeignKey('itineraries.id'), nullable=False)
+    index = Column(Integer, nullable=False)
+    title = Column(String(255), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    itinerary = relationship("Itinerary", back_populates="days")
+    itinerary_items = relationship("ItineraryItem", back_populates="day", cascade="all, delete-orphan")
+    
+    def __repr__(self):
+        return f"<Day(id='{self.id}', itinerary_id='{self.itinerary_id}', index={self.index})>"
+    
+    def to_dict(self):
+        """Convert model to dictionary"""
+        return {
+            'id': str(self.id),
+            'itinerary_id': str(self.itinerary_id),
+            'index': self.index,
+            'title': self.title,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+
+
+class ItineraryItem(Base, Model):
+    """SQLAlchemy model for itinerary_items table"""
+    __tablename__ = 'itinerary_items'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    day_id = Column(UUID(as_uuid=True), ForeignKey('days.id'), nullable=False)
+    data_source_id = Column(UUID(as_uuid=True), ForeignKey('data_source.id'))
+    index = Column(Integer, nullable=False)
+    title = Column(String(255), nullable=False)
+    type = Column(item_type_enum, nullable=False)
+    detail_text = Column(Text)
+    photos = Column(ARRAY(String))
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    day = relationship("Day", back_populates="itinerary_items")
+    data_source = relationship("DataSource", back_populates="itinerary_items")
+    
+    def __repr__(self):
+        return f"<ItineraryItem(id='{self.id}', day_id='{self.day_id}', type='{self.type}', title='{self.title}')>"
+    
+    def to_dict(self):
+        """Convert model to dictionary"""
+        return {
+            'id': str(self.id),
+            'day_id': str(self.day_id),
+            'data_source_id': str(self.data_source_id) if self.data_source_id else None,
+            'index': self.index,
+            'title': self.title,
+            'type': self.type,
+            'detail_text': self.detail_text,
+            'photos': self.photos,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
