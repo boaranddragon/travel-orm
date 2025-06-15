@@ -86,7 +86,18 @@ class Model:
             query = session.query(cls)
             if limit is not None:
                 query = query.limit(limit)
-            return query.all()
+            
+            results = query.all()
+            
+            # Create copies of the instances to return after the session is closed
+            copies = []
+            for instance in results:
+                instance_copy = cls()
+                for column in instance.__table__.columns:
+                    setattr(instance_copy, column.name, getattr(instance, column.name))
+                copies.append(instance_copy)
+                
+            return copies
     
     def update(self, **kwargs):
         """
@@ -146,7 +157,19 @@ class Model:
             Any: Query result
         """
         with DatabaseConnection.session_scope() as session:
-            return query_func(session)
+            result = query_func(session)
+            
+            # If the result is a list of model instances, create copies
+            if isinstance(result, list) and len(result) > 0 and hasattr(result[0], '__table__'):
+                copies = []
+                for instance in result:
+                    instance_copy = instance.__class__()
+                    for column in instance.__table__.columns:
+                        setattr(instance_copy, column.name, getattr(instance, column.name))
+                    copies.append(instance_copy)
+                return copies
+            
+            return result
 
 
 class TravelAdvisor(Base, Model):
