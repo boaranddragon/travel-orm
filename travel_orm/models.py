@@ -212,7 +212,7 @@ class Itinerary(Base, Model):
     __tablename__ = 'itineraries'
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    owner_id = Column(UUID(as_uuid=True), ForeignKey('travel_advisors.id'), nullable=False)
+    travel_advisor_id = Column(UUID(as_uuid=True), ForeignKey('travel_advisors.id'), nullable=False)
     start_date = Column(Date, nullable=False)
     duration = Column(Integer, nullable=False)
     destination = Column(String(255), nullable=False)
@@ -221,7 +221,7 @@ class Itinerary(Base, Model):
     updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    travel_advisor = relationship("TravelAdvisor", back_populates="itineraries", foreign_keys=[owner_id])
+    travel_advisor = relationship("TravelAdvisor", back_populates="itineraries", foreign_keys=[travel_advisor_id])
     days = relationship("Day", back_populates="itinerary", cascade="all, delete-orphan")
     information_documents = relationship("InformationDocument", back_populates="itinerary", cascade="all, delete-orphan")
     
@@ -232,7 +232,7 @@ class Itinerary(Base, Model):
         """Convert model to dictionary"""
         return {
             'id': str(self.id),
-            'owner_id': str(self.owner_id),
+            'travel_advisor_id': str(self.travel_advisor_id),
             'start_date': self.start_date.isoformat() if self.start_date else None,
             'duration': self.duration,
             'destination': self.destination,

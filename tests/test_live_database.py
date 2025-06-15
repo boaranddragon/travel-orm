@@ -133,7 +133,7 @@ class LiveDatabaseTest:
         logger.info("Testing itinerary creation...")
         start_date = date.today() + timedelta(days=30)  # 30 days from now
         itinerary = Itinerary.create(
-            owner_id=self.created_objects['advisor'].id,
+            travel_advisor_id=self.created_objects['advisor'].id,
             start_date=start_date,
             duration=7,
             destination=f"Test Destination {self.test_id}"
@@ -245,7 +245,7 @@ class LiveDatabaseTest:
         # Test querying itineraries by advisor
         def query_itineraries_by_advisor(session):
             return session.query(Itinerary).filter_by(
-                owner_id=self.created_objects['advisor'].id
+                travel_advisor_id=self.created_objects['advisor'].id
             ).all()
         
         itineraries = Itinerary.execute_query(query_itineraries_by_advisor)
