@@ -63,6 +63,16 @@ class DatabaseConnection:
         Returns:
             dict: Database credentials
         """
+        # For testing purposes, use hardcoded credentials if environment variables are not set
+        if os.environ.get('USE_HARDCODED_CREDENTIALS', 'false').lower() == 'true':
+            logger.info("Using hardcoded credentials for testing")
+            return {
+                'username': os.environ.get('DB_USERNAME', 'postgres'),
+                'password': os.environ.get('DB_PASSWORD', ''),
+                'host': os.environ.get('DB_HOST', ''),
+                'port': int(os.environ.get('DB_PORT', '5432'))
+            }
+            
         secret_arn = secret_arn or os.environ.get('DB_SECRET_ARN')
         secret_name = os.environ.get('DB_SECRET_NAME', 'travel-itinerary-db-credentials')
         
