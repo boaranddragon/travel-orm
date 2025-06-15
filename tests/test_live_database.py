@@ -245,7 +245,7 @@ class LiveDatabaseTest:
         # Test querying itineraries by advisor
         def query_itineraries_by_advisor(session):
             return session.query(Itinerary).filter_by(
-                travel_advisor_id=self.created_objects['advisor'].id
+                owner_id=self.created_objects['advisor'].id
             ).all()
         
         itineraries = Itinerary.execute_query(query_itineraries_by_advisor)
