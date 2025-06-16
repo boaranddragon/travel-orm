@@ -105,8 +105,8 @@ class DatabaseConnection:
             creds = cls._get_db_credentials(secret_arn)
             db_name = db_name or os.environ.get('DB_NAME', 'travel_itinerary')
             
-            # Create connection string
-            conn_string = f"postgresql://{creds['username']}:{creds['password']}@{creds['host']}:{creds.get('port', 5432)}/{db_name}"
+            # Create connection string using pg8000 instead of psycopg2
+            conn_string = f"postgresql+pg8000://{creds['username']}:{creds['password']}@{creds['host']}:{creds.get('port', 5432)}/{db_name}"
             
             # Create engine
             cls._engine = create_engine(conn_string)
