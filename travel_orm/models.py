@@ -243,8 +243,8 @@ class Itinerary(Base, Model):
 
 
 class DataSource(Base, Model):
-    """SQLAlchemy model for data_source table"""
-    __tablename__ = 'data_source'
+    """SQLAlchemy model for data_sources table"""
+    __tablename__ = 'data_sources'
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     received_at = Column(DateTime(timezone=True), default=datetime.utcnow)
@@ -318,7 +318,7 @@ class Day(Base, Model):
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     itinerary_id = Column(UUID(as_uuid=True), ForeignKey('itineraries.id'), nullable=False)
-    index = Column(Integer, nullable=False)
+    indices = Column(ARRAY(Integer), nullable=False)
     title = Column(String(255), nullable=False)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
