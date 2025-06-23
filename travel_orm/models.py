@@ -347,8 +347,8 @@ class ItineraryItem(Base, Model):
     __tablename__ = 'itinerary_items'
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    day_id = Column(UUID(as_uuid=True), ForeignKey('days.id'), nullable=False)
-    data_source_id = Column(UUID(as_uuid=True), ForeignKey('data_source.id'))
+    day_id = Column(UUID(as_uuid=True), ForeignKey('days.id'), nullable=True)  # Allow NULL per Phase B requirements
+    data_source_id = Column(UUID(as_uuid=True), ForeignKey('data_sources.id'))  # Updated FK reference
     index = Column(Integer, nullable=False)
     title = Column(String(255), nullable=False)
     type = Column(item_type_enum, nullable=False)
