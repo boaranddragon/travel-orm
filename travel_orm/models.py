@@ -280,7 +280,7 @@ class InformationDocument(Base, Model):
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     itinerary_id = Column(UUID(as_uuid=True), ForeignKey('itineraries.id'), nullable=False)
-    data_source_id = Column(UUID(as_uuid=True), ForeignKey('data_source.id'))
+    data_source_id = Column(UUID(as_uuid=True), ForeignKey('data_sources.id'))
     index = Column(Integer, nullable=False)
     title = Column(String(255), nullable=False)
     text = Column(Text)
