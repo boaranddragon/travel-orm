@@ -178,6 +178,7 @@ class TravelAdvisor(Base, Model):
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String(255), nullable=False)
+    email = Column(String(255))  # Added for IG Mode
     phone_number = Column(String(50))
     website = Column(String(255))
     profile_image = Column(String(255))
@@ -188,6 +189,8 @@ class TravelAdvisor(Base, Model):
     
     # Relationships
     itineraries = relationship("Itinerary", back_populates="travel_advisor")
+    processing_emails = relationship("ProcessingEmail", back_populates="travel_advisor", cascade="all, delete-orphan")
+    stranded_items = relationship("StrandedItineraryItem", back_populates="travel_advisor", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<TravelAdvisor(id='{self.id}', name='{self.name}', company='{self.company_name}')>"
@@ -197,6 +200,7 @@ class TravelAdvisor(Base, Model):
         return {
             'id': str(self.id),
             'name': self.name,
+            'email': self.email,
             'phone_number': self.phone_number,
             'website': self.website,
             'profile_image': self.profile_image,
@@ -328,14 +332,14 @@ class Day(Base, Model):
     itinerary_items = relationship("ItineraryItem", back_populates="day", cascade="all, delete-orphan")
     
     def __repr__(self):
-        return f"<Day(id='{self.id}', itinerary_id='{self.itinerary_id}', index={self.index})>"
+        return f"<Day(id='{self.id}', itinerary_id='{self.itinerary_id}', indices={self.indices})>"
     
     def to_dict(self):
         """Convert model to dictionary"""
         return {
             'id': str(self.id),
             'itinerary_id': str(self.itinerary_id),
-            'index': self.index,
+            'indices': self.indices,
             'title': self.title,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
@@ -360,6 +364,7 @@ class ItineraryItem(Base, Model):
     # Relationships
     day = relationship("Day", back_populates="itinerary_items")
     data_source = relationship("DataSource", back_populates="itinerary_items")
+    stranded_record = relationship("StrandedItineraryItem", back_populates="itinerary_item", uselist=False)
     
     def __repr__(self):
         return f"<ItineraryItem(id='{self.id}', day_id='{self.day_id}', type='{self.type}', title='{self.title}')>"
@@ -368,13 +373,68 @@ class ItineraryItem(Base, Model):
         """Convert model to dictionary"""
         return {
             'id': str(self.id),
-            'day_id': str(self.day_id),
+            'day_id': str(self.day_id) if self.day_id else None,
             'data_source_id': str(self.data_source_id) if self.data_source_id else None,
             'index': self.index,
             'title': self.title,
             'type': self.type,
             'detail_text': self.detail_text,
             'photos': self.photos,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+
+
+class ProcessingEmail(Base, Model):
+    """SQLAlchemy model for processing_emails table"""
+    __tablename__ = 'processing_emails'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    email = Column(String(255), nullable=False)
+    travel_advisor_id = Column(UUID(as_uuid=True), ForeignKey('travel_advisors.id'), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    travel_advisor = relationship("TravelAdvisor", back_populates="processing_emails")
+    
+    def __repr__(self):
+        return f"<ProcessingEmail(id='{self.id}', email='{self.email}', travel_advisor_id='{self.travel_advisor_id}')>"
+    
+    def to_dict(self):
+        """Convert model to dictionary"""
+        return {
+            'id': str(self.id),
+            'email': self.email,
+            'travel_advisor_id': str(self.travel_advisor_id),
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+
+
+class StrandedItineraryItem(Base, Model):
+    """SQLAlchemy model for stranded_itinerary_items table"""
+    __tablename__ = 'stranded_itinerary_items'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    travel_advisor_id = Column(UUID(as_uuid=True), ForeignKey('travel_advisors.id'), nullable=True)  # NULL allowed
+    itinerary_item_id = Column(UUID(as_uuid=True), ForeignKey('itinerary_items.id'), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    travel_advisor = relationship("TravelAdvisor", back_populates="stranded_items")
+    itinerary_item = relationship("ItineraryItem", back_populates="stranded_record")
+    
+    def __repr__(self):
+        return f"<StrandedItineraryItem(id='{self.id}', travel_advisor_id='{self.travel_advisor_id}', itinerary_item_id='{self.itinerary_item_id}')>"
+    
+    def to_dict(self):
+        """Convert model to dictionary"""
+        return {
+            'id': str(self.id),
+            'travel_advisor_id': str(self.travel_advisor_id) if self.travel_advisor_id else None,
+            'itinerary_item_id': str(self.itinerary_item_id),
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
